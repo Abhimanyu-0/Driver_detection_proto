@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <!-- Include Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Skin resistance </h1>
+    <p>Real-time data:</p>
+    <!-- Canvas element for the chart -->
+    <canvas id="skin_resistance"></canvas>
+
+    <script>
+        // Initialize the chart
+        var ctx = document.getElementById('skin_resistance').getContext('2d');
+        var chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Skin Resistance',
+                    data: [],
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        time: {
+                            unit: 'second'
+                        }
+                    }],
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+
+        // Function to fetch real-time data from the server
+        function fetchRealtimeData() {
+            fetch('/check_for_face_images')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.has_face_images) {
+                        // Fetch real-time data only if face-detected images are present
+                        fetch('/real_time')
+                            .then(response => response.json())
+                            .then(real_time_data => {
+                                // Call function to update chart with the received data
+                                updateChart(real_time_data);
+                            })
+                            .catch(error => console.error('Error fetching data:', error));
+                    } else {
+                        // If no face-detected images are present, log a message
+                        console.log('No face-detected images found. Waiting...');
+                    }
+                })
+                .catch(error => console.error('Error checking for face images:', error));
+        }
+
+        // Function to update the chart with new data
+        function updateChart(real_time_data) {
+            // Extract the 'time' and 'temperature' values from the real-time data
+            var time = real_time_data.time;
+            var skin_resistance = real_time_data.skin_resistance;
+
+            // Update the chart data
+            chart.data.labels.push(time);
+            chart.data.datasets[0].data.push(skin_resistance);
+            chart.update(); // Update the chart
+        }
+
+        // Fetch real-time data every 5 seconds
+        setInterval(fetchRealtimeData, 5000);
+
+        // Initial fetch when the page loads
+        fetchRealtimeData();
+    </script>
+</body>
+</html>
